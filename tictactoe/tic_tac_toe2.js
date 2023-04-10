@@ -1,7 +1,3 @@
-// const arra = document.getElementsByClassName("common")
-// Array.from(arra).forEach(
-//     element => console.log(element.textContent
-//     ));
 var X_PLAYER_TURN = true;
 var O_PLAYER_TURN = false;
 var WINNING_COMBINATIONS = [
@@ -16,9 +12,6 @@ var WINNING_COMBINATIONS = [
 ]
 var count = 0
 console.log(WINNING_COMBINATIONS)
-var X_PLAYERS_COMBINATION = []
-var O_PLAYERS_COMBINATION = []
-
 
 var X_PLAYER_TURN = true;
 var O_PLAYER_TURN = false;
@@ -26,18 +19,9 @@ let Player_X = []
 let Player_O = []
 
 var elements = (document.querySelectorAll('.common'));
-// const Two_player = document.querySelector('[value="Two player"]').checked = true;
+const Two_player = document.querySelector('[value="Two player"]').checked = true;
 let PC_player = document.querySelector('input[value="PC player"]').checked;
 console.log(PC_player);
-// if (Two_player) {
-//     elements.forEach(function (element) {
-//         element.addEventListener('click', clickHandler);
-//     });
-//     this.removeEventListener('click', clickHandler);
-// }
-// else {
-//     // this.removeEventListener('click', clickHandler);
-// }
 
 const checkboxes = document.getElementsByName('player');
 checkboxes.forEach((cb) => {
@@ -45,33 +29,38 @@ checkboxes.forEach((cb) => {
         console.log(`Checkbox value: ${cb.value}, checked: ${cb.checked}`);
         if (cb.checked && cb.value === 'Two player') {
             console.log('hello')
-            // cb.checked = false;
             elements.forEach(function (element) {
                 element.addEventListener('click', clickHandler);
             });
             document.querySelector('input[value="PC player"]').checked = false;
         }
         else {
-            // this.removeEventListener('click', clickHandler)
-            //computer play
             PC_player = true;
             console.log('here')
             elements.forEach(function (element) {
                 element.addEventListener('click', computerPlay);
             });
+            document.querySelector('[value="Two player"]').checked = false;
         }
     });
 });
 
-function clickHandler() {
+async function clickHandler(event) {
     const position = Array.from(elements).indexOf(this);
+    const clickedElement = event.target
+    clickedElement.removeEventListener('click', clickHandler);
     if (X_PLAYER_TURN) {
-        this.textContent = 'X';
-        this.classList.add('x');
-        X_PLAYER_TURN = false;
-        Player_X.push(position)
-        count += 1
-        O_PLAYER_TURN = true;
+        if (!this.classList.contains('o')){
+            this.textContent = 'X';
+            this.classList.add('x');
+            X_PLAYER_TURN = false;
+            Player_X.push(position)
+            count += 1
+            O_PLAYER_TURN = true;
+        } else {
+            O_PLAYER_TURN = false;
+        }
+        console.log("I have played, PC turn")
     } else if (O_PLAYER_TURN) {
         this.textContent = 'O';
         this.classList.add('o')
@@ -82,9 +71,19 @@ function clickHandler() {
     }
     console.log("Player X", Player_X)
     console.log("Player_O", Player_O)
-    findWinner(WINNING_COMBINATIONS, Player_X, Player_O)
+    let winner = await findWinner(WINNING_COMBINATIONS, Player_X, Player_O)
+    console.log(winner)
+    if (winner) {
+        console.log(`${winner} wins!`);
+        elements.forEach(function (element) {
+            element.removeEventListener('click', clickHandler);
+        });
+        return;
+    }
+
     console.log('HEre', PC_player)
-    if (PC_player) {
+    if ((PC_player && O_PLAYER_TURN) && (winner != 'x' || winner != 'o')) {
+        console.log('Calling PC to play')
         setTimeout(computerPlay, 500)
     }
 
@@ -92,37 +91,41 @@ function clickHandler() {
     this.removeEventListener('click', computerPlay);
 }
 
-// elements.forEach(function (element) {
-//     element.addEventListener('click', clickHandler);
-// });
-
-function findWinner(WINNING_COMBINATIONS, X, O) {
+async function findWinner(WINNING_COMBINATIONS, X, O) {
     for (const combination of WINNING_COMBINATIONS) {
         if (combination.every(pos => X.includes(pos))) {
+            PC_player = false
+            await delay(50);
             alert('Player X wins');
             location.reload();
-            return;
+            return 'x';
         }
         if (combination.every(pos => O.includes(pos))) {
+            await delay(50)
             alert('Player O wins');
             location.reload();
-            return;
+            return 'o';
         }
     }
     if (X.length + O.length == 9) {
+        await delay(50);
         alert('Game is a draw');
         location.reload();
-        return;
+        return 'draw';
     }
 }
 
-function computerPlay() {
+async function computerPlay() {
     let emptySquares = document.querySelectorAll('.common:not(.o):not(.x');
     console.log(emptySquares)
     var randomSquare = emptySquares[Math.floor(Math.random() * emptySquares.length)];
     // computer plays as O by default
-    randomSquare.textContent = 'O';
-    randomSquare.classList.add('o');
+    
+    console.log('Cheking PC turn', PC_player)
+    if (PC_player) {
+        randomSquare.textContent = 'O';
+        randomSquare.classList.add('o');
+    }
 
     O_PLAYER_TURN = false;
     X_PLAYER_TURN = true;
@@ -134,7 +137,11 @@ function computerPlay() {
     )
     console.log("Player X", Player_X)
     console.log("Player_O", Player_O)
-    findWinner(WINNING_COMBINATIONS, Player_X, Player_O)
+    await findWinner(WINNING_COMBINATIONS, Player_X, Player_O)
+}
+
+function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
 }
 
 elements.forEach(function (element) {
